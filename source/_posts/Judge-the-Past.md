@@ -12,4 +12,4 @@ MMYZ was moved to GAODI in 2013. Normally the food problem should be taken place
 
 I just raised some examples, but we can draw a conclusion that before 2015 or eralier our seniors have such a pleasure lives in No. 8 Haixin Rd. We could imagine that the colorful edge in MMYZ is a method to reassure many parents that even if the legand MMYZ was moved to a suburban area, their children can still enjoy themselves just like what they do in Fuhua community. 
 
-However, <font color="red">**Maoming Polytechnic**</font>
+However, <font color="red">**Maoming Polytechnic**</font> was set up their South Campus just near MMYZ.
