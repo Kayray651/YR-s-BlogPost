@@ -1,0 +1,3 @@
+# Security configuration
+enable_security_headers: true
+enable_security_script: true
