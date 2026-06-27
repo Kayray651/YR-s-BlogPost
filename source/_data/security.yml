@@ -1,4 +1,0 @@
-# Security configuration
-# Note: For this blog, we're relying on vercel.json for security headers
-# and keeping things simple to avoid breaking the site
-enable_security_headers: true
