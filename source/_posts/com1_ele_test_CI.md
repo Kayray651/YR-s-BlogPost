@@ -58,6 +58,8 @@ tags:
 ![诡异](/asserts/photos/psg3/pic2.jpg "示波器的妙用")
 <center style="font-size:14px;color:#C0C0C0">示波器一度这样显示，应该是开关断了</center>
 
+</p>
+
 ![诡异](/asserts/photos/psg3/pic3.jpg "示波器的妙用")
 <center style="font-size:14px;color:#C0C0C0">很难理解的微小波动</center>
 
