@@ -55,13 +55,12 @@ tags:
 
 交付测试时也不顺利：首先是我差点没从队友发出的图片看出来那边实验室用的居然是<font color="blue">示波器电流源两用</font>仪器，然后修改了串口设置时波特率和接收方式不对劲的小问题。更大的问题到交付结束后都没有解决：探头连上对应的针脚后，本应出现的正常的方波居然出现了先前从未见到的瞬时振荡，好在队友L口才相当好，把这个现象解释成pid的动态调参。
 
-![诡异](/asserts/photos/psg3/pic2.jpg "示波器的妙用")
-<center style="font-size:14px;color:#C0C0C0">示波器一度这样显示，应该是开关断了</center>
+![优美的曲线](/asserts/photos/psg3/pic2.jpg "示波器的妙用")
 
 </p>
 
-![诡异](/asserts/photos/psg3/pic3.jpg "示波器的妙用")
-<center style="font-size:14px;color:#C0C0C0">很难理解的微小波动</center>
+![难以理解的小幅振荡](/asserts/photos/psg3/pic3.jpg "示波器的妙用")
+
 
 ### 结果
 
