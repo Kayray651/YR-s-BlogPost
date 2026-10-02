@@ -8,7 +8,7 @@
  *   pnpm sync-wechat -- --dry-run 试运行（不调用微信 API，仅检查转换结果）
  *
  * 前置:
- *   1. 复制 .env.example 为 .env，填入 WECHAT_APPID / WECHAT_APPSECRET
+ *   1. 编辑 .env，填入 WECHAT_APPID / WECHAT_APPSECRET
  *   2. 公众号后台 → 设置与开发 → 基本配置 → IP白名单 加入本机出口 IP
  *   3. pnpm install
  */
@@ -40,7 +40,7 @@ function getConfig() {
   const env = process.env;
   if (!env.WECHAT_APPID || !env.WECHAT_APPSECRET) {
     console.error('错误: .env 中缺少 WECHAT_APPID 或 WECHAT_APPSECRET');
-    console.error('请复制 .env.example 为 .env 并填写');
+    console.error('请编辑 .env 填写 WECHAT_APPID 和 WECHAT_APPSECRET');
     process.exit(1);
   }
   return {
