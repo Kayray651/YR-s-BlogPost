@@ -5,7 +5,7 @@ tags:
 ---
 
 </p><div style="font-family: 'FangSong', '仿宋', 'STFangsong', '仿宋_GB2312', serif;">
-本文作者：杨 生
+<strong>本文作者：杨 生</strong>
 </div></p>
 
 <p>九月寅卯，酉亥子戊，海心路下，熙熙攘攘。<br>
