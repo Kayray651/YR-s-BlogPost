@@ -8,7 +8,7 @@ tags:
 
 ## （一）策 录
 
-- {% post_link maoyi_story/charter1_1 '第一章 第一节' %}
+- {% post_link maoyi_story/charter1_1 '杨帝登访' %}
 - {% post_link maoyi_story/charter1_2 '第一章 第二节' %}
 
 

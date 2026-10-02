@@ -4,7 +4,10 @@ date: 2026-09-10 10:01:00
 tags:
 ---
 
-> 本文作者：杨 生
+<div style="font-family: 'FangSong', '仿宋', 'STFangsong', '仿宋_GB2312', serif;">
+本文作者：杨 生
+</div></p>
+
 
 <p>九月寅卯，酉亥子戊，海心路下，熙熙攘攘。<br>
 帝之走够，首宰管张，嬉皮笑脸，推车于桥，<br>
