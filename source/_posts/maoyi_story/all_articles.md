@@ -8,5 +8,5 @@ tags:
 
 ## 第一章
 
-- [第一章 第一节](./charter1_1.md)
-- [第一章 第二节](./charter1_2.md)
+- {% post_link maoyi_story/charter1_1 '第一章 第一节' %}
+- {% post_link maoyi_story/charter1_2 '第一章 第二节' %}
