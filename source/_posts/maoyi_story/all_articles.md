@@ -10,6 +10,7 @@ tags:
 
 - {% post_link maoyi_story/charter1_1 '杨 帝 登 访' %}
 - {% post_link maoyi_story/charter1_2 '评 厚 凌' %}
+- {% post_link maoyi_story/charter1_3 '逸 闻 实 录' %}
 
 
 > 引 言
