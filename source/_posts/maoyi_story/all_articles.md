@@ -11,6 +11,7 @@ tags:
 - {% post_link maoyi_story/charter1_1 '杨 帝 登 访' %}
 - {% post_link maoyi_story/charter1_2 '评 厚 凌' %}
 - {% post_link maoyi_story/charter1_3 '逸 闻 实 录' %}
+- {% post_link maoyi_story/charter1_4 '梧 林 山 逸 事 记' %}
 
 
 > 引 言
