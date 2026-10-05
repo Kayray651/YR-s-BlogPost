@@ -4,8 +4,10 @@
  *
  * 用法:
  *   pnpm sync-wechat              同步未同步的文章
- *   pnpm sync-wechat -- --force   强制重新同步所有文章
+ *   pnpm sync-wechat -- --force   强制更新所有已有草稿
  *   pnpm sync-wechat -- --dry-run 试运行（不调用微信 API，仅检查转换结果）
+ *   pnpm sync-wechat -- --only all_articles.md 只同步指定草稿
+ *   目录中的 post_link 使用 tools/wechat-article-urls.json 里的已发布微信文章链接
  *
  * 前置:
  *   1. 编辑 .env，填入 WECHAT_APPID / WECHAT_APPSECRET
@@ -30,12 +32,18 @@ const POSTS_ROOT = join(ROOT, 'source', '_posts');
 const POSTS_DIR = join(POSTS_ROOT, 'maoyi_story');
 const SOURCE_DIR = join(ROOT, 'source');
 const STATE_FILE = join(ROOT, '.wechat-sync.json');
+const ARTICLE_URLS_FILE = join(__dirname, 'wechat-article-urls.json');
 const API = 'https://api.weixin.qq.com';
 
 // ========== 参数 ==========
 const args = process.argv.slice(2);
 const FORCE = args.includes('--force');
 const DRY_RUN = args.includes('--dry-run');
+const onlyIndex = args.indexOf('--only');
+const ONLY = onlyIndex === -1 ? '' : args[onlyIndex + 1];
+if (onlyIndex !== -1 && (!ONLY || ONLY.startsWith('--'))) {
+  throw new Error('--only 后面需要一个文章文件名，例如 all_articles.md');
+}
 
 // ========== 环境变量 ==========
 function getConfig() {
@@ -62,7 +70,7 @@ function getConfig() {
     appSecret: env.WECHAT_APPSECRET,
     author: env.WECHAT_AUTHOR || 'Kay Ray',
     blogUrl: blogUrl.href.replace(/\/$/, ''),
-    defaultCover: env.WECHAT_DEFAULT_COVER || '',
+    defaultCover: env.WECHAT_DEFAULT_COVER || 'source/images/wechat-cover.png',
   };
 }
 
@@ -179,6 +187,14 @@ async function createDraft(token, article) {
   return res.media_id;
 }
 
+async function updateDraft(token, mediaId, article) {
+  const url = `${API}/cgi-bin/draft/update?access_token=${token}`;
+  const res = await httpsPost(url, { media_id: mediaId, index: 0, articles: article }, 'application/json');
+  if (res.errcode) {
+    throw new Error(`更新草稿失败: ${res.errcode} ${res.errmsg}`);
+  }
+}
+
 // ========== Markdown → 微信 HTML ==========
 
 function mdToWechatHtml(md) {
@@ -285,13 +301,24 @@ function buildSourceUrl(blogUrl, postPath) {
   return new URL(postPath, `${blogUrl}/`).href;
 }
 
-function renderPostLinks(md, links, blogUrl) {
+function loadWechatArticleUrls() {
+  if (!existsSync(ARTICLE_URLS_FILE)) return {};
+  return JSON.parse(readFileSync(ARTICLE_URLS_FILE, 'utf-8'));
+}
+
+function renderPostLinks(md, links, articleUrls) {
   return md.replace(/\{%\s*post_link\s+([^\s%]+)(?:\s+(['"])(.*?)\2)?\s*%\}/g, (_, slug, _quote, label) => {
     const target = links.get(slug);
     if (!target) throw new Error(`找不到站内文章链接: ${slug}`);
+    const articleUrl = articleUrls[slug];
+    if (!articleUrl) throw new Error(`缺少已发布微信文章链接: ${slug}；请先发布对应文章，再填写 tools/wechat-article-urls.json`);
+    let url;
+    try { url = new URL(articleUrl); } catch { throw new Error(`微信文章链接无效: ${slug}`); }
+    if (url.protocol !== 'https:' || url.hostname !== 'mp.weixin.qq.com' || !url.pathname.startsWith('/s') || url.searchParams.has('tempkey')) {
+      throw new Error(`请填写已发布的永久微信文章链接，不能使用草稿预览链接: ${slug}`);
+    }
     const title = (label || target.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const href = buildSourceUrl(blogUrl, target.path);
-    return `<a href="${href}">${title}</a>`;
+    return `<a href="${url.href.replace(/&/g, '&amp;')}">${title}</a>`;
   });
 }
 
@@ -324,7 +351,18 @@ async function main() {
   console.log('=== Hexo → 微信公众号草稿同步 ===\n');
   if (DRY_RUN) console.log('[试运行模式] 不会调用微信 API\n');
 
+  const coverPath = isAbsolute(config.defaultCover)
+    ? config.defaultCover
+    : join(ROOT, config.defaultCover);
+  if (!existsSync(coverPath)) {
+    throw new Error(`封面图片不存在: ${coverPath}`);
+  }
+  const coverHash = md5(readFileSync(coverPath));
+  let coverMediaId = '';
+
   const state = loadState();
+  const articleUrls = loadWechatArticleUrls();
+  const articleUrlsHash = md5(JSON.stringify(articleUrls));
   const { paths: postPaths, links: postLinks } = await loadPostPaths();
 
   let token = '';
@@ -334,7 +372,8 @@ async function main() {
     console.log('access_token 获取成功\n');
   }
 
-  const posts = readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md'));
+  const posts = readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md') && (!ONLY || f === ONLY));
+  if (ONLY && posts.length === 0) throw new Error(`找不到文章: ${ONLY}`);
   console.log(`扫描到 ${posts.length} 篇文章\n`);
 
   let synced = 0, skipped = 0, failed = 0;
@@ -355,7 +394,8 @@ async function main() {
 
     const hash = md5(raw);
     const prev = state.synced_posts[fileName];
-    if (prev && prev.content_hash === hash && prev.source_url === sourceUrl && !FORCE) {
+    const postLinkCount = (body.match(/\{%\s*post_link\b/g) || []).length;
+    if (prev && prev.content_hash === hash && prev.source_url === sourceUrl && prev.cover_hash === coverHash && (!postLinkCount || prev.article_urls_hash === articleUrlsHash) && !FORCE) {
       console.log(`[跳过] ${fileName}（已同步）`);
       skipped++;
       continue;
@@ -365,8 +405,7 @@ async function main() {
 
     try {
       // 1. Markdown → 微信 HTML
-      const postLinkCount = (body.match(/\{%\s*post_link\b/g) || []).length;
-      const renderedBody = renderPostLinks(body, postLinks, config.blogUrl);
+      const renderedBody = renderPostLinks(body, postLinks, articleUrls);
       if (/\{%\s*post_link\b/.test(renderedBody)) {
         throw new Error('有未能解析的 post_link 标签，草稿未创建');
       }
@@ -379,32 +418,22 @@ async function main() {
         html = await processImages(html, imgs, token);
       }
 
-      // 3. 封面图（第一张图或默认封面）
-      const defaultCoverPath = config.defaultCover
-        ? (isAbsolute(config.defaultCover) ? config.defaultCover : join(ROOT, config.defaultCover))
-        : '';
-      const coverPath =
-        imgs.length > 0 && existsSync(imgs[0].localPath)
-          ? imgs[0].localPath
-          : defaultCoverPath && existsSync(defaultCoverPath)
-            ? defaultCoverPath
-            : '';
-
+      // 3. 固定封面，整批草稿复用同一个永久素材
       let thumbId = '';
-      if (coverPath) {
-        if (DRY_RUN) {
-          console.log(`  [dry-run] 封面待上传: ${basename(coverPath)}`);
-        } else {
-          thumbId = await uploadCoverImage(token, coverPath);
+      if (DRY_RUN) {
+        console.log(`  [dry-run] 封面: ${basename(coverPath)}`);
+      } else {
+        if (!coverMediaId && prev?.cover_hash === coverHash && prev.thumb_media_id) {
+          coverMediaId = prev.thumb_media_id;
+        }
+        if (!coverMediaId) {
+          coverMediaId = await uploadCoverImage(token, coverPath);
           console.log('  封面已上传');
         }
-      } else if (!DRY_RUN) {
-        console.warn('  ⚠ 无封面图（文章无图片且未设 WECHAT_DEFAULT_COVER），跳过');
-        skipped++;
-        continue;
+        thumbId = coverMediaId;
       }
 
-      // 4. 创建草稿
+      // 4. 更新已有草稿，首次同步时创建草稿
       const article = {
         title,
         author: config.author,
@@ -417,22 +446,26 @@ async function main() {
       };
 
       if (DRY_RUN) {
-        console.log(`  [dry-run] 将创建草稿: "${title}"`);
+        console.log(`  [dry-run] 将${prev?.media_id ? '更新' : '创建'}草稿: "${title}"`);
         console.log(`  [dry-run] 摘要: ${article.digest.slice(0, 50)}...`);
         console.log(`  [dry-run] 阅读原文: ${article.content_source_url}`);
-        if (postLinkCount) console.log(`  [dry-run] 已转换站内链接: ${postLinkCount}`);
+        if (postLinkCount) console.log(`  [dry-run] 已转换微信文章链接: ${postLinkCount}`);
         console.log(`  [dry-run] 正文: ${html.length} 字符`);
       } else {
-        const draftId = await createDraft(token, article);
+        const draftId = prev?.media_id || await createDraft(token, article);
+        if (prev?.media_id) await updateDraft(token, draftId, article);
         state.synced_posts[fileName] = {
           media_id: draftId,
           content_hash: hash,
           source_url: sourceUrl,
+          cover_hash: coverHash,
+          ...(postLinkCount ? { article_urls_hash: articleUrlsHash } : {}),
+          thumb_media_id: thumbId,
           synced_at: new Date().toISOString(),
           title,
         };
         saveState(state);
-        console.log(`  草稿已创建: ${draftId}`);
+        console.log(`  草稿已${prev?.media_id ? '更新' : '创建'}: ${draftId}`);
       }
       synced++;
     } catch (err) {
@@ -446,6 +479,7 @@ async function main() {
 
   console.log('=== 完成 ===');
   console.log(`同步: ${synced} | 跳过: ${skipped} | 失败: ${failed}`);
+  if (failed > 0) process.exitCode = 1;
   if (!DRY_RUN && synced > 0) {
     console.log('\n下一步: 登录 mp.weixin.qq.com → 草稿箱 → 预览 → 发布');
   }
