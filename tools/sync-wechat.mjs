@@ -14,10 +14,11 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
-import { join, basename, dirname } from 'path';
+import { join, basename, dirname, relative, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import https from 'https';
+import Hexo from 'hexo';
 
 import { marked } from 'marked';
 import matter from 'gray-matter';
@@ -25,7 +26,8 @@ import matter from 'gray-matter';
 // ========== 路径常量 ==========
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const POSTS_DIR = join(ROOT, 'source', '_posts');
+const POSTS_ROOT = join(ROOT, 'source', '_posts');
+const POSTS_DIR = join(POSTS_ROOT, 'maoyi_story');
 const SOURCE_DIR = join(ROOT, 'source');
 const STATE_FILE = join(ROOT, '.wechat-sync.json');
 const API = 'https://api.weixin.qq.com';
@@ -38,16 +40,28 @@ const DRY_RUN = args.includes('--dry-run');
 // ========== 环境变量 ==========
 function getConfig() {
   const env = process.env;
-  if (!env.WECHAT_APPID || !env.WECHAT_APPSECRET) {
+  if (!DRY_RUN && (!env.WECHAT_APPID || !env.WECHAT_APPSECRET)) {
     console.error('错误: .env 中缺少 WECHAT_APPID 或 WECHAT_APPSECRET');
     console.error('请编辑 .env 填写 WECHAT_APPID 和 WECHAT_APPSECRET');
     process.exit(1);
+  }
+  if (!env.BLOG_URL) {
+    throw new Error('请在 .env 中设置 BLOG_URL，作为“阅读原文”的网站地址');
+  }
+  let blogUrl;
+  try {
+    blogUrl = new URL(env.BLOG_URL);
+  } catch {
+    throw new Error('BLOG_URL 不是有效网址');
+  }
+  if (!['http:', 'https:'].includes(blogUrl.protocol) || blogUrl.search || blogUrl.hash) {
+    throw new Error('BLOG_URL 必须是没有查询参数或锚点的 http(s) 网站地址');
   }
   return {
     appId: env.WECHAT_APPID,
     appSecret: env.WECHAT_APPSECRET,
     author: env.WECHAT_AUTHOR || 'Kay Ray',
-    blogUrl: (env.BLOG_URL || '').replace(/\/$/, ''),
+    blogUrl: blogUrl.href.replace(/\/$/, ''),
     defaultCover: env.WECHAT_DEFAULT_COVER || '',
   };
 }
@@ -131,6 +145,7 @@ async function getToken(appId, appSecret) {
     }
     throw new Error(`获取 access_token 失败: ${res.errcode} ${res.errmsg}`);
   }
+  if (!res.access_token) throw new Error('获取 access_token 失败：微信未返回 access_token');
   return res.access_token;
 }
 
@@ -140,6 +155,7 @@ async function uploadContentImage(token, filePath) {
   if (res.errcode) {
     throw new Error(`图片上传失败 (${basename(filePath)}): ${res.errcode} ${res.errmsg}`);
   }
+  if (!res.url) throw new Error(`图片上传失败 (${basename(filePath)})：微信未返回图片 URL`);
   return res.url;
 }
 
@@ -149,6 +165,7 @@ async function uploadCoverImage(token, filePath) {
   if (res.errcode) {
     throw new Error(`封面上传失败: ${res.errcode} ${res.errmsg}`);
   }
+  if (!res.media_id) throw new Error('封面上传失败：微信未返回 media_id');
   return res.media_id;
 }
 
@@ -158,6 +175,7 @@ async function createDraft(token, article) {
   if (res.errcode) {
     throw new Error(`创建草稿失败: ${res.errcode} ${res.errmsg}`);
   }
+  if (!res.media_id) throw new Error('创建草稿失败：微信未返回 media_id');
   return res.media_id;
 }
 
@@ -200,11 +218,11 @@ function mdToWechatHtml(md) {
 
 function extractImages(html) {
   const images = [];
-  const re = /<img[^>]+src="([^"]+)"/g;
+  const re = /<img\b[^>]*\s+src\s*=\s*(["'])(.*?)\1/gi;
   let m;
   while ((m = re.exec(html)) !== null) {
-    const src = m[1];
-    if (src.startsWith('http')) continue; // 外链跳过
+    const src = m[2];
+    if (/^(https?:)?\/\//i.test(src) || /^data:/i.test(src)) continue;
     const localPath = src.startsWith('/')
       ? join(SOURCE_DIR, src.slice(1))
       : join(SOURCE_DIR, src);
@@ -216,8 +234,7 @@ function extractImages(html) {
 async function processImages(html, images, token) {
   for (const img of images) {
     if (!existsSync(img.localPath)) {
-      console.warn(`  ⚠ 图片不存在: ${img.localPath}`);
-      continue;
+      throw new Error(`图片不存在，草稿未创建: ${img.localPath}`);
     }
     if (DRY_RUN) {
       console.log(`  [dry-run] 图片待上传: ${basename(img.localPath)}`);
@@ -264,15 +281,36 @@ function buildDigest(body) {
   return buf.subarray(0, len).toString('utf-8') + '...';
 }
 
-function buildSourceUrl(blogUrl, frontMatter, fileName) {
-  if (!blogUrl) return '';
-  const d = new Date(frontMatter.date);
-  if (isNaN(d)) return '';
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const da = String(d.getDate()).padStart(2, '0');
-  const slug = fileName.replace(/\.md$/, '');
-  return `${blogUrl}/${y}/${mo}/${da}/${slug}/`;
+function buildSourceUrl(blogUrl, postPath) {
+  return new URL(postPath, `${blogUrl}/`).href;
+}
+
+function renderPostLinks(md, links, blogUrl) {
+  return md.replace(/\{%\s*post_link\s+([^\s%]+)(?:\s+(['"])(.*?)\2)?\s*%\}/g, (_, slug, _quote, label) => {
+    const target = links.get(slug);
+    if (!target) throw new Error(`找不到站内文章链接: ${slug}`);
+    const title = (label || target.title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const href = buildSourceUrl(blogUrl, target.path);
+    return `<a href="${href}">${title}</a>`;
+  });
+}
+
+async function loadPostPaths() {
+  const hexo = new Hexo(ROOT, { silent: true, safe: true });
+  try {
+    await hexo.init();
+    await hexo.load();
+    const paths = new Map();
+    const links = new Map();
+    for (const post of hexo.model('Post').find({}).toArray()) {
+      paths.set(post.source.replace(/\\/g, '/'), post.path);
+      const slug = post.source.replace(/\\/g, '/').replace(/^_posts\//, '').replace(/\.[^.]+$/, '');
+      links.set(slug, { path: post.path, title: post.title });
+    }
+    return { paths, links };
+  } finally {
+    await hexo.exit();
+  }
 }
 
 function sleep(ms) {
@@ -286,6 +324,9 @@ async function main() {
   console.log('=== Hexo → 微信公众号草稿同步 ===\n');
   if (DRY_RUN) console.log('[试运行模式] 不会调用微信 API\n');
 
+  const state = loadState();
+  const { paths: postPaths, links: postLinks } = await loadPostPaths();
+
   let token = '';
   if (!DRY_RUN) {
     console.log('获取 access_token...');
@@ -293,7 +334,6 @@ async function main() {
     console.log('access_token 获取成功\n');
   }
 
-  const state = loadState();
   const posts = readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md'));
   console.log(`扫描到 ${posts.length} 篇文章\n`);
 
@@ -304,10 +344,18 @@ async function main() {
     const raw = readFileSync(filePath, 'utf-8');
     const { data: fm, content: body } = matter(raw);
     const title = fm.title || fileName.replace(/\.md$/, '');
+    const source = `_posts/${relative(POSTS_ROOT, filePath).replace(/\\/g, '/')}`;
+    const postPath = postPaths.get(source);
+    if (!postPath) {
+      console.error(`[失败] ${fileName}：Hexo 未生成这篇文章的路径`);
+      failed++;
+      continue;
+    }
+    const sourceUrl = buildSourceUrl(config.blogUrl, postPath);
 
     const hash = md5(raw);
     const prev = state.synced_posts[fileName];
-    if (prev && prev.content_hash === hash && !FORCE) {
+    if (prev && prev.content_hash === hash && prev.source_url === sourceUrl && !FORCE) {
       console.log(`[跳过] ${fileName}（已同步）`);
       skipped++;
       continue;
@@ -317,7 +365,12 @@ async function main() {
 
     try {
       // 1. Markdown → 微信 HTML
-      let html = mdToWechatHtml(body);
+      const postLinkCount = (body.match(/\{%\s*post_link\b/g) || []).length;
+      const renderedBody = renderPostLinks(body, postLinks, config.blogUrl);
+      if (/\{%\s*post_link\b/.test(renderedBody)) {
+        throw new Error('有未能解析的 post_link 标签，草稿未创建');
+      }
+      let html = mdToWechatHtml(renderedBody);
 
       // 2. 图片上传 & URL 替换
       const imgs = extractImages(html);
@@ -327,11 +380,14 @@ async function main() {
       }
 
       // 3. 封面图（第一张图或默认封面）
+      const defaultCoverPath = config.defaultCover
+        ? (isAbsolute(config.defaultCover) ? config.defaultCover : join(ROOT, config.defaultCover))
+        : '';
       const coverPath =
         imgs.length > 0 && existsSync(imgs[0].localPath)
           ? imgs[0].localPath
-          : config.defaultCover && existsSync(join(ROOT, config.defaultCover))
-            ? join(ROOT, config.defaultCover)
+          : defaultCoverPath && existsSync(defaultCoverPath)
+            ? defaultCoverPath
             : '';
 
       let thumbId = '';
@@ -354,7 +410,7 @@ async function main() {
         author: config.author,
         digest: buildDigest(body),
         content: html,
-        content_source_url: buildSourceUrl(config.blogUrl, fm, fileName),
+        content_source_url: sourceUrl,
         thumb_media_id: thumbId,
         need_open_comment: 0,
         only_fans_can_comment: 0,
@@ -363,12 +419,15 @@ async function main() {
       if (DRY_RUN) {
         console.log(`  [dry-run] 将创建草稿: "${title}"`);
         console.log(`  [dry-run] 摘要: ${article.digest.slice(0, 50)}...`);
+        console.log(`  [dry-run] 阅读原文: ${article.content_source_url}`);
+        if (postLinkCount) console.log(`  [dry-run] 已转换站内链接: ${postLinkCount}`);
         console.log(`  [dry-run] 正文: ${html.length} 字符`);
       } else {
         const draftId = await createDraft(token, article);
         state.synced_posts[fileName] = {
           media_id: draftId,
           content_hash: hash,
+          source_url: sourceUrl,
           synced_at: new Date().toISOString(),
           title,
         };
@@ -393,6 +452,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('致命错误:', err.message);
+  console.error('致命错误:', err.stack || err.message);
   process.exit(1);
 });

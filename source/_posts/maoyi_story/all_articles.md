@@ -46,7 +46,7 @@ tags:
 ## （五） 诗 歌
 - {% post_link maoyi_story/charter5_1 '告 密 气 球' %}
 - {% post_link maoyi_story/charter5_2 '夜 忆 怀 古' %}
-- {% post_link maoyi_story/charter5_4 '帝 方 赞 铭' %}
+- {% post_link maoyi_story/charter5_4 '帝 访 赞 铭' %}
 - {% post_link maoyi_story/charter5_5 '中 元 诗' %}
 - {% post_link maoyi_story/charter5_6 '示 孙' %}
 
