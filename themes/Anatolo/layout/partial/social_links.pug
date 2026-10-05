@@ -1,0 +1,55 @@
+ul.social-links
+  - var socials = Object.fromEntries(Object.entries(theme.social).filter((x) => x[1]));
+  each link, icon in socials
+    case icon
+      when "mail"
+        li
+          a(href="mailto:" + link)
+            i.fa.fa-envelope
+      when "rss"
+        li
+          a(href=link)
+            i.fa.fa-rss
+      default
+        li
+          a(href=link)
+            i.fab(class="fa-" + icon)
+
+  //- deprecated 
+  if theme.github
+    li
+      a(href=theme.github)
+        i.fab.fa-github
+  if theme.mail
+    li
+      //- a(href= "javascript:alert(\"" + theme.mail +"\")" )
+      a(href="mailto:" + theme.mail)
+        i.fa.fa-envelope
+  if theme.QQ
+    li
+      a(href="http://sighttp.qq.com/authd?IDKEY=" + theme.QQ)
+        i.fab.fa-qq
+  if theme.zhihu
+    li
+      a(href=theme.zhihu)
+        i.fa.fa-zhihu
+  if theme.twitter
+    li
+      a(href=theme.twitter)
+        i.fab.fa-twitter
+  if theme.instagram
+    li
+      a(href=theme.instagram)
+        i.fab.fa-instagram
+  if theme.rss
+    li
+      a(href=url_for(theme.rss))
+        i.fa.fa-rss
+  if theme.weibo
+    li
+      a(href=theme.weibo)
+        i.fab.fa-weibo
+  if theme.facebook
+    li
+      a(href=theme.facebook)
+        i.fab.fa-facebook

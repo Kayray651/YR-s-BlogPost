@@ -1,0 +1,19 @@
+doctype
+html(lang="zh-CN", theme=theme.defaultTheme.replaceAll("-mode", ""))
+  head
+    include head
+
+  - var classList = [];
+  - if (!config.highlight.line_number && !config.prismjs.line_number) { classList.push("disable-line-number"); }
+
+  body(class=classList.join(" ")) 
+    main-outlet
+      include nav
+      include sidebar
+      .main.animated.fadeInDown
+        block content
+    if theme.rightbtn.search
+      include components/search
+
+    include components/float-btn
+    include components/float-indicator

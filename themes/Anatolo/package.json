@@ -1,0 +1,32 @@
+{
+  "name": "hexo-theme-Anatolo",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "format:pretty": "prettier --write ./{layout,src}/**/*.{pug,scss} && prettier --write ./*.{yml,md}",
+    "format:biome": "biome format --write includes languages scripts source src .",
+    "lint": "eslint . --fix",
+    "format": "pnpm format:biome && pnpm format:pretty",
+    "watch": "rolldown -w -c",
+    "build": "rolldown -c"
+  },
+  "dependencies": {
+    "@rollup/plugin-node-resolve": "^15.3.1",
+    "hexo-renderer-pug": "^0.0.5",
+    "hexo-util": "^4.0.0",
+    "moment": "^2.31.0",
+    "rolldown": "^1.2.5",
+    "rollup-plugin-sass": "^1.15.3",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.8.3",
+    "@prettier/plugin-pug": "^3.4.2",
+    "@swc/core": "^1.16.1",
+    "eslint": "^9.39.5",
+    "fuse.js": "^7.5.0",
+    "prettier": "^3.9.6",
+    "unplugin-swc": "^1.5.11"
+  },
+  "packageManager": "pnpm@10.33.4"
+}
