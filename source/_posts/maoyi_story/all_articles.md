@@ -1,6 +1,6 @@
 ---
 title: 茂一轶闻录
-date: 2026-09-10 10:00:00
+date: 2026-10-05 17:44:00
 tags:
 ---
 
@@ -12,11 +12,53 @@ tags:
 - {% post_link maoyi_story/charter1_2 '评 厚 凌' %}
 - {% post_link maoyi_story/charter1_3 '逸 闻 实 录' %}
 - {% post_link maoyi_story/charter1_4 '梧 林 山 逸 事 记' %}
+- {% post_link maoyi_story/charter1_5 '社 会 论' %}
+- {% post_link maoyi_story/charter1_6 '咏 时 局' %}
+- {% post_link maoyi_story/charter1_7 '比 目 之 咏' %}
 
 
-> 引 言
+## （二）情 史 录
+- {% post_link maoyi_story/charter2_1 '肘 嗜 情 史' %}
+- {% post_link maoyi_story/charter2_2 '肘 门 诸 子' %}
+- {% post_link maoyi_story/charter2_3 '区 翟 章 传' %}
 
-> <font size=4>校尔什维克之映铃</font>
+## （三）世 家
+- {% post_link maoyi_story/charter3_1 '东 于 舀 世 家' %}
+- {% post_link maoyi_story/charter3_2 '厚 积 帝 史 拾 遗' %}
+- {% post_link maoyi_story/charter3_3 '厚 高 祖 大 事 考' %}
+
+## （四）传 记
+- {% post_link maoyi_story/charter4_1 '飞 将 军 李 日 吻 传' %}
+- {% post_link maoyi_story/charter4_2 '杨 生 传' %}
+- {% post_link maoyi_story/charter4_3 '小 鲫 女 传' %}
+- {% post_link maoyi_story/charter4_4 '火 原 传' %}
+- {% post_link maoyi_story/charter4_5 '欧 后 传' %}
+- {% post_link maoyi_story/charter4_6 '祝 席 传' %}
+- {% post_link maoyi_story/charter4_7 '蒋 高 尔 传' %}
+- {% post_link maoyi_story/charter4_8 '吴 矛 传' %}
+- {% post_link maoyi_story/charter4_9 '绍 伶 传' %}
+- {% post_link maoyi_story/charter4_10 '郭 史 传' %}
+- {% post_link maoyi_story/charter4_11 '地 主 传' %}
+- {% post_link maoyi_story/charter4_12 '蔡 智 因 传' %}
+
+## （五） 诗 歌
+- {% post_link maoyi_story/charter5_1 '告 密 气 球' %}
+- {% post_link maoyi_story/charter5_2 '夜 忆 怀 古' %}
+- {% post_link maoyi_story/charter5_4 '帝 方 赞 铭' %}
+- {% post_link maoyi_story/charter5_5 '中 元 诗' %}
+- {% post_link maoyi_story/charter5_6 '示 孙' %}
+
+<p>
+
+<div style="text-align: center;">
+引 言
+</div><p>
+
+<div style="text-align: center;"><font size=4>
+校尔什维克之映铃 
+</font>
+</div><p>
+
 
 &emsp;&emsp;昔新北大，今诚贯耳：经济导报，代代暗传；今勾煲立汀，追忆先迹，成一家言。南北新识，东西辟论，昔今汇著，内外至文，汇集至此，不喜人乎？业重虽然，无碍九星照耀，可谓善哉！
 
