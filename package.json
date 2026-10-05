@@ -29,6 +29,6 @@
   },
   "devDependencies": {
     "gray-matter": "^4.0.3",
-    "marked": "^18.0.7"
+    "marked": "^18.0.14"
   }
 }
